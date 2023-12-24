@@ -7,12 +7,12 @@
 
 // token 
 typedef enum{
-    TK_RESERVED,                    // symbol
-    TK_NUM,                         // token of numeral
-    TK_EOF                          // token of its end of input
+    TK_RESERVED,                    // 0...symbol
+    TK_NUM,                         // 1...token of numeral
+    TK_EOF                          // 2...token of its end of input
 }TOKEN_KIND;
 
-typedef struct st_token_t token_t;  // "typedef type tag name" style is normal but this style makes me confused.
+typedef struct st_token_t token_t;  // "typedef type tag name" style is normal but this style is bit confusing programmers so as I.
 
 struct st_token_t{
     TOKEN_KIND tk;                  // type of Token
@@ -24,14 +24,32 @@ struct st_token_t{
 // current token
 token_t *token;
 
+// input program
+char *user_input;
 
 // error messaging function
-void error_01cc(char *fmt, ...){        // variable argument
+// Report an error location and exit.s
+void error_01cc(char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(stderr, fmt, ap);
+  fprintf(stderr, "\n");
+  exit(1);
+}
+
+// tell where errors appear
+void error_at_01cc(char *loc, char *fmt, ...){
     va_list ap;
     va_start(ap, fmt);
+
+    int pos = loc - user_input;
+    fprintf(stderr, "%s\n", user_input);
+    fprintf(stderr, "%*s", pos, " ");
+    fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
     exit(1);
+
 }
 
 // if next token is the sign which is expected, return true. if else, return false.   
@@ -46,7 +64,7 @@ bool consume_01cc(char op){
 // それ以外の場合にはエラーを報告する。
 void expect_01cc(char op){
     if(token->tk != TK_RESERVED || token->str[0] != op) {
-        error_01cc("'%c'ではありません", op);
+        error_at_01cc(token->str, "'%c'ではありません", op);
     }
     token = token->next;
 }
@@ -56,7 +74,7 @@ void expect_01cc(char op){
 int expect_number_01cc(){
     if(token->tk != TK_NUM)
     {
-        error_01cc("is not number.");
+        error_at_01cc(token->str , "is not number.");
     }
 
     int val =token->val;
@@ -78,7 +96,7 @@ token_t *new_token_01cc(TOKEN_KIND tk, token_t *cur, char *str){
     return tok;
 }
 
-//
+// tokenize means dividing words indivisually.
 token_t *tokenize_01cc(char *p){
     token_t head;
     head.next = NULL;
@@ -104,7 +122,7 @@ token_t *tokenize_01cc(char *p){
             continue;
         }
 
-        error_01cc("cannnot toknize");
+        error_at_01cc(p, "expected a number");
     }
 
     new_token_01cc(TK_EOF, cur, p);
@@ -115,12 +133,14 @@ token_t *tokenize_01cc(char *p){
 
 int main (int argc, char **argv){
     if(argc != 2){
-        error_01cc("fault argument.");
+        error_01cc(token->str, "fault argument.");
+        error_at_01cc(token->str, "is not number");
         return 1;
     }
 
     // do toknization
-    token = tokenize_01cc(argv[1]);
+    user_input = argv[1];
+    token = tokenize_01cc(user_input);
 
     // show part of former words of assembly
     printf(".intel_syntax noprefix\n");
